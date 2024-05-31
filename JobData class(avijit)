@@ -1,0 +1,61 @@
+package org.example.slurmjobproject;
+
+public class JobData {
+        private final String date;
+        private final int jobsCreated;
+        private final int jobsEnded;
+        private final int opteronJobs;
+        private final int epycJobs;
+        private final int gpuJobs;
+        private final int jobErrors;
+        private final long avgExecutionTime;
+        private final int userErrors; // Add this field
+
+        public JobData(String date, int jobsCreated, int jobsEnded, int opteronJobs, int epycJobs, int gpuJobs, int jobErrors, long avgExecutionTime, int userErrors) {
+            this.date = date;
+            this.jobsCreated = jobsCreated;
+            this.jobsEnded = jobsEnded;
+            this.opteronJobs = opteronJobs;
+            this.epycJobs = epycJobs;
+            this.gpuJobs = gpuJobs;
+            this.jobErrors = jobErrors;
+            this.avgExecutionTime = avgExecutionTime;
+            this.userErrors = userErrors;
+        }
+
+        public String getDate() {
+            return date;
+        }
+
+        public int getJobsCreated() {
+            return jobsCreated;
+        }
+
+        public int getJobsEnded() {
+            return jobsEnded;
+        }
+
+        public int getOpteronJobs() {
+            return opteronJobs;
+        }
+
+        public int getEpycJobs() {
+            return epycJobs;
+        }
+
+        public int getGpuJobs() {
+            return gpuJobs;
+        }
+
+        public int getJobErrors() {
+            return jobErrors;
+        }
+
+        public long getAvgExecutionTime() {
+            return avgExecutionTime;
+        }
+
+        public int getUserErrors() { // Add this getter
+            return userErrors;
+        }
+    }
