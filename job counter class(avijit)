@@ -1,0 +1,158 @@
+package org.example.slurmjobproject;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
+public class JobCounter {
+    public static Map<String, JobCounts> countJobsByDate(String filePath) {
+        Map<String, JobCounts> jobCountsByDate = new HashMap<>();
+        Map<String, Long> jobStartTimes = new HashMap<>();
+
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                String[] tokens = line.split(" ");
+                String timestamp = tokens[0].substring(1, tokens[0].length() - 1); // Removing the brackets
+                String date = timestamp.substring(0, 10);
+
+                JobCounts counts = jobCountsByDate.computeIfAbsent(date, k -> new JobCounts());
+
+                if (line.contains("_slurm_rpc_submit_batch_job")) {
+                    counts.incrementJobsCreated();
+                    String jobId = getJobId(line);
+                    jobStartTimes.put(jobId, parseTimeToMillis(timestamp));
+                } else if (line.contains("_job_complete:")) {
+                    counts.incrementJobsEnded();
+                    String jobId = getJobId(line);
+                    if (jobStartTimes.containsKey(jobId)) {
+                        long startTime = jobStartTimes.get(jobId);
+                        long endTime = parseTimeToMillis(timestamp);
+                        long executionTime = endTime - startTime;
+                        counts.addExecutionTime(executionTime);
+                    }
+                } else if (line.contains("Partition=cpu-opteron")) {
+                    counts.incrementOpteronJobs();
+                } else if (line.contains("Partition=cpu-epyc")) {
+                    counts.incrementEpycJobs();
+                } else if (line.contains("Partition=gpu")) {
+                    counts.incrementGpuJobs();
+                } else if (line.contains("error: This association")) {
+                    counts.incrementJobErrors();
+                    counts.incrementUserErrors(); // Increment user errors for the date
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return jobCountsByDate;
+    }
+
+    private static long parseTimeToMillis(String timestamp) {
+        String[] timeParts = timestamp.split("[T:.]");
+        long hours = Long.parseLong(timeParts[1]) * 3600000;
+        long minutes = Long.parseLong(timeParts[2]) * 60000;
+        long seconds = Long.parseLong(timeParts[3]) * 1000;
+        long millis = Long.parseLong(timeParts[4]);
+        return hours + minutes + seconds + millis;
+    }
+
+    private static String getJobId(String line) {
+        String[] tokens = line.split(" ");
+        for (String token : tokens) {
+            if (token.startsWith("JobId=")) {
+                return token.split("=")[1];
+            }
+        }
+        return null;
+    }
+
+    public static class JobCounts {
+        private int jobsCreated;
+        private int jobsEnded;
+        private int opteronJobs;
+        private int epycJobs;
+        private int gpuJobs;
+        private int jobErrors;
+        private int userErrors; // Add this field
+        private long totalExecutionTime;
+        private int jobCount;  // Total job count for calculating average execution time
+
+        public void incrementJobsCreated() {
+            jobsCreated++;
+            jobCount++;
+        }
+
+        public void incrementJobsEnded() {
+            jobsEnded++;
+            jobCount--;
+        }
+
+        public void incrementOpteronJobs() {
+            opteronJobs++;
+        }
+
+        public void incrementEpycJobs() {
+            epycJobs++;
+        }
+
+        public void incrementGpuJobs() {
+            gpuJobs++;
+        }
+
+        public void incrementJobErrors() {
+            jobErrors++;
+        }
+
+        public void incrementUserErrors() { // Add this method
+            userErrors++;
+        }
+
+        public void addExecutionTime(long executionTime) {
+            totalExecutionTime += executionTime;
+        }
+
+        public int getJobsCreated() {
+            return jobsCreated;
+        }
+
+        public int getJobsEnded() {
+            return jobsEnded;
+        }
+
+        public int getOpteronJobs() {
+            return opteronJobs;
+        }
+
+        public int getEpycJobs() {
+            return epycJobs;
+        }
+
+        public int getGpuJobs() {
+            return gpuJobs;
+        }
+
+        public int getJobErrors() {
+            return jobErrors;
+        }
+
+        public int getUserErrors() { // Add this getter
+            return userErrors;
+        }
+
+        public long getTotalExecutionTime() {
+            return totalExecutionTime;
+        }
+
+        public int getJobCount() {
+            return jobCount;
+        }
+
+        public long getAvgExecutionTime() {
+            return jobCount > 0 ? Math.max(totalExecutionTime / jobCount, 0) : 0;
+        }
+    }
+}
